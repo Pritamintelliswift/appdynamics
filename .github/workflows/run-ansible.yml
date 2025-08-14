@@ -24,16 +24,6 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Install rsync on GCP VM
-      run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
-          "sudo apt-get update && sudo apt-get install -y rsync"
-
-    - name: Copy playbooks to GCP VM
-      run: |
-        rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./playbooks/ \
-          ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }}:/home/gcp_phase2_id6/playbooks/
-
     - name: Run Ansible Playbook remotely
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
