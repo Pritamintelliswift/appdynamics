@@ -1,16 +1,21 @@
 name: Run Ansible Playbook on GCP VM
 
 on:
-  workflow_dispatch:  # allows manual run from GitHub UI
+  workflow_dispatch: # Manual trigger from GitHub UI
   push:
     branches:
-      - main  # also run on push to main
+      - main # Also trigger when pushing to main
 
 jobs:
   run-playbook:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout repo
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Step 2: Setup SSH
     - name: Setup SSH to GCP VM
       run: |
         mkdir -p ~/.ssh
@@ -18,7 +23,14 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
+    # Step 3: Copy playbooks from repo to GCP VM
+    - name: Copy playbooks to GCP VM
+      run: |
+        rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./playbooks/ \
+          ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }}:/home/gcp_phase2_id6/playbooks/
+
+    # Step 4: Run Ansible Playbook remotely on GCP VM
     - name: Run Ansible Playbook remotely
       run: |
         ssh ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
-          "cd ~/playbooks && ansible-playbook -v check_date.yml -i /etc/ansible/hosts"
+          "cd /home/gcp_phase2_id6/playbooks && ansible-playbook -v check_date.yml -i /etc/ansible/hosts"
