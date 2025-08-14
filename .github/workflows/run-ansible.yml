@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # manual trigger
   push:
     branches:
-      - master         # trigger on push to main
+      - master  # trigger on push to master
 
 jobs:
   run-playbook:
@@ -15,13 +15,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Setup SSH
+    # Step 2: Setup SSH with private key and host fingerprint
     - name: Setup SSH to ansible-master
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/authorized_keys
+        ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
     # Step 3: Run the playbook on ansible-master
     - name: Run Ansible Playbook
