@@ -7,15 +7,12 @@ on:
       - master  # trigger on push to master
 
 jobs:
-  run-playbook:
+  ping-servers:
     runs-on: ubuntu-latest
-
     steps:
-    # Step 1: Checkout repo (optional)
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Setup SSH with private key and host fingerprint
     - name: Setup SSH to ansible-master
       run: |
         mkdir -p ~/.ssh
@@ -23,7 +20,11 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
-    # Step 3: Run the playbook on ansible-master
+    - name: Ping Ansible managed servers
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
+          "ansible servers -m ping -i /etc/ansible/hosts"
+
     - name: Run Ansible Playbook
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
