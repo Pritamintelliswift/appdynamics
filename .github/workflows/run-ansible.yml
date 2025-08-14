@@ -4,7 +4,7 @@ on:
   workflow_dispatch: # Manual trigger from GitHub UI
   push:
     branches:
-      - main # Also trigger when pushing to main
+      - main # Also run on push to main
 
 jobs:
   run-playbook:
@@ -15,22 +15,26 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Setup SSH
-    - name: Setup SSH to GCP VM
+    # Step 2: Install rsync for file transfer
+    - name: Install rsync
+      run: sudo apt-get update && sudo apt-get install -y rsync
+
+    # Step 3: Setup SSH to GCP VM
+    - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
-    # Step 3: Copy playbooks from repo to GCP VM
+    # Step 4: Copy playbooks from repo to GCP VM
     - name: Copy playbooks to GCP VM
       run: |
         rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./playbooks/ \
           ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }}:/home/gcp_phase2_id6/playbooks/
 
-    # Step 4: Run Ansible Playbook remotely on GCP VM
+    # Step 5: Run Ansible Playbook remotely
     - name: Run Ansible Playbook remotely
       run: |
-        ssh ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
+        ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
           "cd /home/gcp_phase2_id6/playbooks && ansible-playbook -v check_date.yml -i /etc/ansible/hosts"
