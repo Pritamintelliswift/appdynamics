@@ -1,22 +1,21 @@
-name: Run Ansible Playbook on GCP VM
+name: Run Ansible Playbook on Ansible Master
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # manual trigger
   push:
     branches:
-      - main
+      - main          # trigger on push to main
 
 jobs:
   run-playbook:
     runs-on: ubuntu-latest
 
     steps:
+    # Step 1: Checkout repo (optional, in case you need to read files in workflow)
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Install rsync on GitHub runner
-      run: sudo apt-get update && sudo apt-get install -y rsync
-
+    # Step 2: Setup SSH to ansible-master
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
@@ -24,7 +23,8 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Run Ansible Playbook remotely
+    # Step 3: SSH into ansible-master and run the playbook
+    - name: Run Ansible Playbook on ansible-master
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
-          "cd /home/gcp_phase2_id6/playbooks && ansible-playbook -v check_date.yml -i /etc/ansible/hosts"
+          "ansible-playbook -v /home/gcp_phase2_id6/playbooks/check_date.yml -i /etc/ansible/hosts"
