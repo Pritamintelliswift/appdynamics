@@ -11,20 +11,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout repo (optional, in case you need to read files in workflow)
+    # Step 1: Checkout repo (optional)
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Step 2: Setup SSH to ansible-master
-    - name: Setup SSH
+    # Step 2: Setup SSH
+    - name: Setup SSH to ansible-master
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
 
-    # Step 3: SSH into ansible-master and run the playbook
-    - name: Run Ansible Playbook on ansible-master
+    # Step 3: Run the playbook on ansible-master
+    - name: Run Ansible Playbook
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.GCP_SSH_USER }}@${{ secrets.GCP_SSH_HOST }} \
           "ansible-playbook -v /home/gcp_phase2_id6/playbooks/check_date.yml -i /etc/ansible/hosts"
