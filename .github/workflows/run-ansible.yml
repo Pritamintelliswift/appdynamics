@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # manual trigger
   push:
     branches:
-      - main          # trigger on push to main
+      - master         # trigger on push to main
 
 jobs:
   run-playbook:
@@ -21,7 +21,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "${{ secrets.GCP_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H ${{ secrets.GCP_SSH_HOST }} >> ~/.ssh/authorized_keys
 
     # Step 3: Run the playbook on ansible-master
     - name: Run Ansible Playbook
