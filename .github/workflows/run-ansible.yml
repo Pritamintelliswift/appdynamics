@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-#updated
+
 jobs:
   install-agent:
     runs-on: ubuntu-latest
@@ -29,7 +29,6 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ env.EC2_PEM }}" > ~/.ssh/appdynamics.pem
           chmod 600 ~/.ssh/appdynamics.pem
-          # Disable strict host key checking
           ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
@@ -55,25 +54,19 @@ jobs:
         run: |
           gsutil -m cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/machineagent.zip
 
-      - name: Install Ansible on EC2 and Copy Files
+      - name: Install Ansible
         run: |
-          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ env.EC2_HOST }} << 'EOF'
-            sudo apt-get update
-            sudo apt-get install -y ansible unzip
-            mkdir -p ~/playbooks ~/inventory
-          EOF
-
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r ./playbooks ubuntu@${{ env.EC2_HOST }}:~/playbooks
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r ./inventory ubuntu@${{ env.EC2_HOST }}:~/inventory
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/machineagent.zip ubuntu@${{ env.EC2_HOST }}:~/machineagent.zip
+          sudo apt-get update
+          sudo apt-get install -y ansible unzip
 
       - name: Run Ansible Playbook on EC2
         run: |
-          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ env.EC2_HOST }} \
-          "ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
-            --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} \
+          ansible-playbook -i ./inventory/hosts.ini ./playbooks/install_machine_agent.yml \
+            -u ${{ env.EC2_USER }} \
+            --private-key ~/.ssh/appdynamics.pem \
+            --extra-vars "appd_controller_url=${{ env.APPD_CONTROLLER_URL }} \
             appd_username=${{ env.APPD_USERNAME }} \
             appd_access_key=${{ env.APPD_ACCESS_KEY }} \
-            machine_agent_file=~/machineagent.zip \
+            machine_agent_file=/tmp/machineagent.zip \
             gcp_key_file=/tmp/gcp.json \
-            ec2_host=${{ env.EC2_HOST }}'"
+            ec2_host=${{ env.EC2_HOST }}"
