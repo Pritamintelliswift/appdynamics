@@ -10,6 +10,7 @@
     appd_account_access_key: "{{ appd_access_key }}"
     appd_agent_home: "/opt/appdynamics/machine-agent"
     machine_agent_file: "{{ machine_agent_file | default('~/machineagent.zip') }}"
+    gcp_key_file: "{{ gcp_key_file | default('/tmp/gcp.json') }}"
 
   tasks:
     - name: Ensure unzip is installed
