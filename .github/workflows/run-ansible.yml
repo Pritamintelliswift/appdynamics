@@ -81,15 +81,11 @@ jobs:
           scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
           cd ~
           ls -ll 
+          
       - name: Run Ansible Playbook on EC2
         run: |
-          
           export ANSIBLE_HOST_KEY_CHECKING=False
-    
           ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
           export ANSIBLE_HOST_KEY_CHECKING=False
-          ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
-          --extra-vars "appd_controller_url=${{ env.APPD_CONTROLLER_URL }} \
-          appd_username=${{ env.APPD_USERNAME }} \
-          appd_access_key=${{ env.APPD_ACCESS_KEY }}"
+          ansible-playbook -i /home/ubuntu/inventory/hosts.ini /home/ubuntu/playbooks/install_machine_agent.yml
           EOF
