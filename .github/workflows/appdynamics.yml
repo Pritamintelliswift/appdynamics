@@ -1,55 +1,55 @@
-name: Deploy Agent via Ansible with Cloud Selection
-on:
-  workflow_dispatch:
-    inputs:
-      provider:
-        description: "Select cloud provider"
-        required: true
-        type: choice
-        options:
-          - gcp
-          - aws
-          - azure
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-      - name: Install Ansible & dependencies
-        run: |
-          pip install --upgrade pip
-          pip install ansible jq lxml
-          ansible-galaxy collection install appdynamics.agents
-          ansible-galaxy collection install amazon.aws google.cloud azure.azcollection
-      #  GCP auth
-      - name: Authenticate to GCP
-        if: ${{ github.event.inputs.provider == 'gcp' }}
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      # AWS auth
-      - name: Authenticate to AWS
-        if: ${{ github.event.inputs.provider == 'aws' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-      # Azure auth
-      - name: Authenticate to Azure
-        if: ${{ github.event.inputs.provider == 'azure' }}
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Run AppDynamics Playbook
-        env:
-          PROVIDER: ${{ github.event.inputs.provider }}
-        run: |
-          ansible-playbook -i inventories/${PROVIDER}_dynamic.yml playbooks/deploy_appdynamics.yml \
-            -e "agent_type=java8 agent_version=23.1.0" \
-            -e "@vars/controller.yaml"
+# name: Deploy Agent via Ansible with Cloud Selection
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       provider:
+#         description: "Select cloud provider"
+#         required: true
+#         type: choice
+#         options:
+#           - gcp
+#           - aws
+#           - azure
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#       - name: Set up Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.x"
+#       - name: Install Ansible & dependencies
+#         run: |
+#           pip install --upgrade pip
+#           pip install ansible jq lxml
+#           ansible-galaxy collection install appdynamics.agents
+#           ansible-galaxy collection install amazon.aws google.cloud azure.azcollection
+#       #  GCP auth
+#       - name: Authenticate to GCP
+#         if: ${{ github.event.inputs.provider == 'gcp' }}
+#         uses: google-github-actions/auth@v2
+#         with:
+#           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+#       # AWS auth
+#       - name: Authenticate to AWS
+#         if: ${{ github.event.inputs.provider == 'aws' }}
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#           aws-region: ${{ secrets.AWS_REGION }}
+#       # Azure auth
+#       - name: Authenticate to Azure
+#         if: ${{ github.event.inputs.provider == 'azure' }}
+#         uses: azure/login@v2
+#         with:
+#           creds: ${{ secrets.AZURE_CREDENTIALS }}
+#       - name: Run AppDynamics Playbook
+#         env:
+#           PROVIDER: ${{ github.event.inputs.provider }}
+#         run: |
+#           ansible-playbook -i inventories/${PROVIDER}_dynamic.yml playbooks/deploy_appdynamics.yml \
+#             -e "agent_type=java8 agent_version=23.1.0" \
+#             -e "@vars/controller.yaml"
