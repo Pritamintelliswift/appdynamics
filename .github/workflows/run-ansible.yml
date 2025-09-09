@@ -54,13 +54,15 @@ jobs:
         run: |
           gsutil -m cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/machineagent.zip
 
-      - name: Copy Playbook to EC2
+      - name: Copy Playbook and Machine Agent to EC2
         run: |
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ubuntu@${{ env.EC2_HOST }}:/tmp/playbooks
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ubuntu@${{ env.EC2_HOST }}:/tmp/inventory
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ubuntu@${{ env.EC2_HOST }}:/tmp/machineagent.zip
+          # Copy playbooks and inventory
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ubuntu@${{ env.EC2_HOST }}:~/playbooks
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ubuntu@${{ env.EC2_HOST }}:~/inventory
+          # Copy machine agent zip to home directory
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ubuntu@${{ env.EC2_HOST }}:~/machineagent.zip
 
       - name: Run Ansible Playbook on EC2
         run: |
-          ssh -i ~/.ssh/appdynamics.pem ubuntu@${{ env.EC2_HOST }} "ansible-playbook -i /tmp/inventory/hosts.ini /tmp/playbooks/install_machine_agent.yml \
-            --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} appd_username=${{ env.APPD_USERNAME }} appd_access_key=${{ env.APPD_ACCESS_KEY }} gcp_key_file=/tmp/gcp.json ec2_host=${{ env.EC2_HOST }}'"
+          ssh -i ~/.ssh/appdynamics.pem ubuntu@${{ env.EC2_HOST }} "ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
+            --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} appd_username=${{ env.APPD_USERNAME }} appd_access_key=${{ env.APPD_ACCESS_KEY }} machine_agent_file=~/machineagent.zip gcp_key_file=/tmp/gcp.json ec2_host=${{ env.EC2_HOST }}'"
