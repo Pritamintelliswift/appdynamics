@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-#update
+#updat
 jobs:
   install-agent:
     runs-on: ubuntu-latest
