@@ -71,10 +71,14 @@ jobs:
             sudo apt-get install -y ansible unzip
             mkdir -p ~/playbooks ~/inventory
           EOF
+          ls -l ./playbooks
+          ls -l ./inventory
+          ls -l /tmp/machineagent.zip
 
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
+
+          scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
+          scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
+          scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
           cd ~
           ls -ll 
       - name: Run Ansible Playbook on EC2
