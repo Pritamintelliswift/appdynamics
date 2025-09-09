@@ -26,12 +26,12 @@ jobs:
 
       - name: Verify SSH Secret availability
         run: |
-          if [ -z "${{ secrets.ANSIBLE_SSH_KEY }}" ]; then
-          echo "❌ Secret ANSIBLE_SSH_KEY is NOT set!"
+          if [ -z "${{ secrets.EC2_PEM }}" ]; then
+          echo "❌ Secret EC2_PEM is NOT set!"
           exit 1
           else
-            echo "✅ Secret ANSIBLE_SSH_KEY is available."
-            echo "Length: $(echo "${{ secrets.ANSIBLE_SSH_KEY }}" | wc -c) characters"
+            echo "✅ Secret EC2_PEM is available."
+            echo "Length: $(echo "${{ secrets.EC2_PEM }}" | wc -c) characters"
             fi
 
       - name: Set up SSH
