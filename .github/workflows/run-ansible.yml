@@ -24,6 +24,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Verify SSH Secret availability
+        run: |
+          if [ -z "${{ secrets.ANSIBLE_SSH_KEY }}" ]; then
+          echo "❌ Secret ANSIBLE_SSH_KEY is NOT set!"
+          exit 1
+          else
+            echo "✅ Secret ANSIBLE_SSH_KEY is available."
+            echo "Length: $(echo "${{ secrets.ANSIBLE_SSH_KEY }}" | wc -c) characters"
+            fi
+
       - name: Set up SSH
         run: |
           echo "${{ secrets.EC2_PEM }}"
