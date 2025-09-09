@@ -26,6 +26,7 @@ jobs:
 
       - name: Set up SSH
         run: |
+          echo "${{ secrets.EC2_PEM }}"
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_PEM }}" > ~/.ssh/appdynamics.pem
           chmod 600 ~/.ssh/appdynamics.pem
