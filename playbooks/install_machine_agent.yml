@@ -1,0 +1,106 @@
+---
+- name: Install AppDynamics Machine Agent
+  hosts: all
+  become: yes
+
+  vars:
+    bucket_name: "appdynamics-agent"
+    agent_file: "machineagent-bundle-64bit-linux-25.7.0.4825.zip"
+    machine_agent_zip: "/tmp/machineagent-bundle-64bit-linux-25.7.0.4825.zip"
+    agent_dir: "/opt/appdynamics"
+
+  tasks:
+    - name: Ensure apt-transport-https and dependencies are installed
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - unzip
+        state: present
+        update_cache: yes
+
+    - name: Add Google Cloud SDK repo key
+      ansible.builtin.shell: |
+        curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+      args:
+        warn: false
+
+    - name: Add Google Cloud SDK repo
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/google-cloud-sdk.list
+        content: "deb https://packages.cloud.google.com/apt cloud-sdk main\n"
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+
+    - name: Install Google Cloud SDK
+      ansible.builtin.apt:
+        name: google-cloud-sdk
+        state: present
+
+    - name: Copy GCP service account key to EC2
+      ansible.builtin.copy:
+        src: "{{ gcp_key_file }}"
+        dest: /tmp/gcp.json
+        mode: '0600'
+
+    - name: Download Machine Agent from GCS
+      ansible.builtin.shell: |
+        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
+        gsutil -m cp gs://{{ bucket_name }}/{{ agent_file }} {{ machine_agent_zip }}
+      args:
+        warn: false
+
+    - name: Verify machine agent file
+      ansible.builtin.shell: |
+        ls -lh {{ machine_agent_zip }}
+        file {{ machine_agent_zip }}
+      register: agent_file_debug
+      changed_when: false
+
+    - debug:
+        var: agent_file_debug.stdout_lines
+
+    - name: Remove old agent folder (if exists)
+      ansible.builtin.file:
+        path: "{{ agent_dir }}"
+        state: absent
+
+    - name: Create directory for AppDynamics agent
+      ansible.builtin.file:
+        path: "{{ agent_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Extract AppDynamics Machine Agent
+      ansible.builtin.unarchive:
+        src: "{{ machine_agent_zip }}"
+        dest: "{{ agent_dir }}"
+        remote_src: yes
+
+    - name: Create systemd service for Machine Agent
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/machine-agent.service
+        content: |
+          [Unit]
+          Description=AppDynamics Machine Agent
+          After=network.target
+
+          [Service]
+          ExecStart={{ agent_dir }}/machineagent/machineagent
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      ansible.builtin.shell: systemctl daemon-reload
+
+    - name: Enable and start machine agent service
+      ansible.builtin.systemd:
+        name: machine-agent
+        enabled: yes
+        state: started
