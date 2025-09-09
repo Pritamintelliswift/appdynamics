@@ -1,6 +1,5 @@
 name: Install AppDynamics Machine Agent
 
-# Trigger on push to main branch
 on:
   push:
     branches:
@@ -44,10 +43,12 @@ jobs:
           curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
           sudo apt-get update && sudo apt-get install -y google-cloud-sdk
 
-      - name: Copy GCP Key
+      - name: Authenticate GCP Service Account
         run: |
           echo "${{ env.GCP_KEY_JSON }}" > /tmp/gcp.json
+          gcloud auth activate-service-account --key-file=/tmp/gcp.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
+          gcloud auth list
 
       - name: Download AppDynamics Machine Agent
         run: |
