@@ -80,5 +80,4 @@ jobs:
         run: |
           export ANSIBLE_HOST_KEY_CHECKING=False
           ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} 
-          "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
-            --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} appd_username=${{ env.APPD_USERNAME }} appd_access_key=${{ env.APPD_ACCESS_KEY }} machine_agent_file=~/machineagent.zip gcp_key_file=/tmp/gcp.json'"
+          "ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} appd_username=${{ env.APPD_USERNAME }} appd_access_key=${{ env.APPD_ACCESS_KEY }} machine_agent_file=~/machineagent.zip'"
