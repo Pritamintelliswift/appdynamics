@@ -29,8 +29,6 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_PEM }}" > ~/.ssh/appdynamics.pem
           chmod 600 ~/.ssh/appdynamics.pem
-          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
           cat ~/.ssh/known_hosts
 
       - name: Install Dependencies
@@ -57,7 +55,7 @@ jobs:
 
       - name: Install Ansible on EC2 and Copy Files
         run: |
-          ssh -i ~/.ssh/appdynamics.pem ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
             sudo apt-get update
             sudo apt-get install -y ansible unzip
             mkdir -p ~/playbooks ~/inventory
