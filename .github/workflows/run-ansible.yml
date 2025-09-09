@@ -1,6 +1,6 @@
 name: Install AppDynamics Machine Agent
 
-# Trigger on push to main branch
+# Trigger on push to main branchs
 on:
   push:
     branches:
