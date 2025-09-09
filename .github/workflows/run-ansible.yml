@@ -42,9 +42,13 @@ jobs:
 
       - name: Copy Playbook, Inventory, and Agent to EC2
         run: |
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ./playbooks/install_machine_agent.yml ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks/
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ./inventory/hosts.ini ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory/
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
+
+      - name: Verify Files on EC2
+        run: |
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "ls -l ~/playbooks ~/inventory ~/machineagent.zip"
 
       - name: Run Ansible Playbook on EC2
         run: |
