@@ -1,44 +1,54 @@
 name: Install AppDynamics Machine Agent
 
+# Trigger on push to main branch
 on:
-  workflow_dispatch:  # allows manual trigger
+  push:
+    branches:
+      - main
 
 jobs:
   install-agent:
     runs-on: ubuntu-latest
 
+    env:
+      APPD_CONTROLLER_URL: ${{ secrets.APPD_CONTROLLER_URL }}
+      APPD_USERNAME: ${{ secrets.APPD_USERNAME }}
+      APPD_ACCESS_KEY: ${{ secrets.APPD_ACCESS_KEY }}
+      GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
+      EC2_PEM: ${{ secrets.EC2_PEM }}
+      EC2_USER: ubuntu
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+
     steps:
-      - name: Checkout repo
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set up GCP service account key
+      - name: Set up SSH
         run: |
-          echo "${{ secrets.GCP_KEY_JSON }}" > /tmp/gcp.json
-          chmod 600 /tmp/gcp.json
-        shell: bash
+          mkdir -p ~/.ssh
+          echo "${{ env.EC2_PEM }}" > ~/.ssh/appdynamics.pem
+          chmod 600 ~/.ssh/appdynamics.pem
+          ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible curl apt-transport-https gnupg
 
       - name: Install Google Cloud SDK
         run: |
-          sudo apt-get update
-          sudo apt-get install -y apt-transport-https ca-certificates gnupg
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key --keyring /usr/share/keyrings/cloud.google.gpg add -
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
           sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-        shell: bash
 
-      - name: Download Machine Agent from GCS
+      - name: Copy GCP Key
         run: |
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
-          gsutil -m cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/
-        shell: bash
+          echo "${{ env.GCP_KEY_JSON }}" > /tmp/gcp.json
 
-      - name: Optional - Run Ansible Playbook
-        uses: appleboy/ansible-action@v0.4.0
-        with:
-          playbook: playbooks/install_machine_agent.yml
-          inventory: inventory/hosts.ini
-          extra_vars: |
-            appd_controller_url=https://****.saas.appdynamics.com
-            appd_username=****
-            appd_access_key=****
-            gcp_key_file=/tmp/gcp.json
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i inventory/hosts.ini playbooks/install_machine_agent.yml \
+            --private-key ~/.ssh/appdynamics.pem \
+            --user ${{ env.EC2_USER }} \
+            --extra-vars "appd_controller_url=${{ env.APPD_CONTROLLER_URL }} appd_username=${{ env.APPD_USERNAME }} appd_access_key=${{ env.APPD_ACCESS_KEY }} gcp_key_file=/tmp/gcp.json ec2_host=${{ env.EC2_HOST }}"
