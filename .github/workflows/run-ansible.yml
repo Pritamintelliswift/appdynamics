@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-#updated
+
 jobs:
   install-agent:
     runs-on: ubuntu-latest
@@ -13,9 +13,6 @@ jobs:
       APPD_CONTROLLER_URL: ${{ secrets.APPD_CONTROLLER_URL }}
       APPD_USERNAME: ${{ secrets.APPD_USERNAME }}
       APPD_ACCESS_KEY: ${{ secrets.APPD_ACCESS_KEY }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON }}
       EC2_PEM: ${{ secrets.EC2_PEM }}
       EC2_USER: ubuntu
       EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -24,68 +21,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Verify SSH Secret availability
+      - name: Set up SSH key
         run: |
-          if [ -z "${{ secrets.EC2_PEM }}" ]; then
-          echo "❌ Secret EC2_PEM is NOT set!"
-          exit 1
-          else
-            echo "✅ Secret EC2_PEM is available."
-            echo "Length: $(echo "${{ secrets.EC2_PEM }}" | wc -c) characters"
-            fi
-
-      - name: Set up SSH
-        run: |
-          echo "${{ secrets.EC2_PEM }}"
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_PEM }}" > ~/.ssh/appdynamics.pem
           chmod 400 ~/.ssh/appdynamics.pem
-          cat ~/.ssh/appdynamics.pem
-
-      - name: Install Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl apt-transport-https gnupg unzip
-
-      - name: Install Google Cloud SDK
-        run: |
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
-          curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
-
-      - name: Authenticate GCP Service Account
-        run: |
-          echo "${{ secrets.GCP_KEY_JSON }}" | base64 --decode > /tmp/gcp.json
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
-          gcloud auth activate-service-account --key-file=/tmp/gcp.json
-          gcloud auth list
 
       - name: Download AppDynamics Machine Agent
         run: |
-          gsutil -m cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/machineagent.zip
+          curl -L -o /tmp/machineagent.zip "https://download.appdynamics.com/path/to/machineagent-bundle-64bit-linux.zip"
+          ls -lh /tmp/machineagent.zip
 
-      - name: Install Ansible on EC2 and Copy Files
+      - name: Install Ansible on EC2
         run: |
           ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
             sudo apt-get update
             sudo apt-get install -y ansible unzip
             mkdir -p ~/playbooks ~/inventory
           EOF
-          ls -l ./playbooks
-          ls -l ./inventory
-          ls -l /tmp/machineagent.zip
 
+      - name: Copy Playbook, Inventory, and Agent to EC2
+        run: |
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
 
-          scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
-          scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
-          scp -v -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
-          cd ~
-          ls -ll 
-          
       - name: Run Ansible Playbook on EC2
         run: |
-          export ANSIBLE_HOST_KEY_CHECKING=False
-          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
-          export ANSIBLE_HOST_KEY_CHECKING=False
-          ansible-playbook -i /home/ubuntu/inventory/hosts.ini /home/ubuntu/playbooks/install_machine_agent.yml
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << EOF
+            export ANSIBLE_HOST_KEY_CHECKING=False
+            ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
+              --extra-vars "appd_controller_url=${APPD_CONTROLLER_URL} appd_username=${APPD_USERNAME} appd_access_key=${APPD_ACCESS_KEY} machine_agent_file=~/machineagent.zip"
           EOF
