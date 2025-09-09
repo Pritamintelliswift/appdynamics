@@ -29,6 +29,7 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ env.EC2_PEM }}" > ~/.ssh/appdynamics.pem
           chmod 600 ~/.ssh/appdynamics.pem
+          # Disable strict host key checking
           ssh-keyscan -H ${{ env.EC2_HOST }} >> ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
@@ -56,17 +57,23 @@ jobs:
 
       - name: Install Ansible on EC2 and Copy Files
         run: |
-          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ubuntu@${{ env.EC2_HOST }} << 'EOF'
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ env.EC2_HOST }} << 'EOF'
             sudo apt-get update
             sudo apt-get install -y ansible unzip
             mkdir -p ~/playbooks ~/inventory
           EOF
 
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ubuntu@${{ env.EC2_HOST }}:~/playbooks
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ubuntu@${{ env.EC2_HOST }}:~/inventory
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ubuntu@${{ env.EC2_HOST }}:~/machineagent.zip
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r ./playbooks ubuntu@${{ env.EC2_HOST }}:~/playbooks
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r ./inventory ubuntu@${{ env.EC2_HOST }}:~/inventory
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null /tmp/machineagent.zip ubuntu@${{ env.EC2_HOST }}:~/machineagent.zip
 
       - name: Run Ansible Playbook on EC2
         run: |
-          ssh -i ~/.ssh/appdynamics.pem ubuntu@${{ env.EC2_HOST }} "ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
-            --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} appd_username=${{ env.APPD_USERNAME }} appd_access_key=${{ env.APPD_ACCESS_KEY }} machine_agent_file=~/machineagent.zip gcp_key_file=/tmp/gcp.json ec2_host=${{ env.EC2_HOST }}'"
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@${{ env.EC2_HOST }} \
+          "ansible-playbook -i ~/inventory/hosts.ini ~/playbooks/install_machine_agent.yml \
+            --extra-vars 'appd_controller_url=${{ env.APPD_CONTROLLER_URL }} \
+            appd_username=${{ env.APPD_USERNAME }} \
+            appd_access_key=${{ env.APPD_ACCESS_KEY }} \
+            machine_agent_file=~/machineagent.zip \
+            gcp_key_file=/tmp/gcp.json \
+            ec2_host=${{ env.EC2_HOST }}'"
