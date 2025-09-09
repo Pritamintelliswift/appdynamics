@@ -4,34 +4,23 @@
   become: yes
 
   vars:
-    appd_controller_host: "{{ appd_controller_url | default('your-controller.saas.appdynamics.com') }}"
+    appd_controller_host: "{{ appd_controller_url }}"
     appd_account_name: "{{ appd_username }}"
     appd_account_access_key: "{{ appd_access_key }}"
     appd_agent_home: "/opt/appdynamics/machine-agent"
 
   tasks:
-    - name: Install AppDynamics agents collection
+    - name: Ensure AppDynamics agents collection is installed
       ansible.builtin.command:
         cmd: ansible-galaxy collection install appdynamics.agents
       changed_when: false
 
-    - name: Install Machine Agent via official role
+    - name: Install Machine Agent using official role
       ansible.builtin.include_role:
         name: appdynamics.agents.machine
-
       vars:
-        agent_type: machine
         controller_host: "{{ appd_controller_host }}"
         account_name: "{{ appd_account_name }}"
         account_access_key: "{{ appd_account_access_key }}"
         install_dir: "{{ appd_agent_home }}"
         enable_service: true
-
-    # Optional: fallback if you still want to fetch from GCS instead of role defaults
-    - name: Ensure Machine Agent zip from GCS (fallback)
-      ansible.builtin.shell: |
-        export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
-        gsutil cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/machineagent.zip
-      args:
-        warn: false
-      when: agent_type == "machine"
