@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-# Updated new
+
 jobs:
   install-agent:
     runs-on: ubuntu-latest
@@ -45,8 +45,7 @@ jobs:
 
       - name: Authenticate GCP Service Account
         run: |
-          # Convert escaped \n into real newlines
-          printf '%b' "${{ env.GCP_KEY_JSON }}" > /tmp/gcp.json
+          echo "${{ env.GCP_KEY_JSON }}" | sed 's/\\n/\n/g' > /tmp/gcp.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
           gcloud auth activate-service-account --key-file=/tmp/gcp.json
           gcloud auth list
