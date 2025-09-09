@@ -29,8 +29,10 @@ jobs:
 
       - name: Download AppDynamics Machine Agent
         run: |
+          # ⚠️ Replace the placeholder URL with your real AppDynamics download link or S3 path
           curl -L -o /tmp/machineagent.zip "https://download.appdynamics.com/path/to/machineagent-bundle-64bit-linux.zip"
           ls -lh /tmp/machineagent.zip
+          file /tmp/machineagent.zip || true
 
       - name: Install Ansible on EC2
         run: |
@@ -42,13 +44,17 @@ jobs:
 
       - name: Copy Playbook, Inventory, and Agent to EC2
         run: |
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ./playbooks/install_machine_agent.yml ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks/
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ./inventory/hosts.ini ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory/
-          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
+          scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:/home/ubuntu/machineagent.zip
 
-      - name: Verify Files on EC2
+      - name: Validate Machine Agent file on EC2
         run: |
-          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "ls -l ~/playbooks ~/inventory ~/machineagent.zip"
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
+            ls -lh /home/ubuntu/machineagent.zip
+            file /home/ubuntu/machineagent.zip
+            unzip -t /home/ubuntu/machineagent.zip || true
+          EOF
 
       - name: Run Ansible Playbook on EC2
         run: |
