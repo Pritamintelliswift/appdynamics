@@ -2,26 +2,66 @@
 - name: Install AppDynamics Machine Agent
   hosts: all
   become: yes
-  connection: local   # <── prevents SSH, runs directly on the node
+  connection: local
 
   vars:
     appd_controller_host: "{{ appd_controller_url }}"
     appd_account_name: "{{ appd_username }}"
     appd_account_access_key: "{{ appd_access_key }}"
     appd_agent_home: "/opt/appdynamics/machine-agent"
+    machine_agent_file: "{{ machine_agent_file | default('~/machineagent.zip') }}"
 
   tasks:
-    - name: Ensure AppDynamics agents collection is installed
-      ansible.builtin.command:
-        cmd: ansible-galaxy collection install appdynamics.agents
-      changed_when: false
+    - name: Ensure unzip is installed
+      ansible.builtin.package:
+        name: unzip
+        state: present
 
-    - name: Install Machine Agent using official role
-      ansible.builtin.include_role:
-        name: appdynamics.agents.machine
-      vars:
-        controller_host: "{{ appd_controller_host }}"
-        account_name: "{{ appd_account_name }}"
-        account_access_key: "{{ appd_account_access_key }}"
-        install_dir: "{{ appd_agent_home }}"
-        enable_service: true
+    - name: Create AppDynamics directory
+      ansible.builtin.file:
+        path: "{{ appd_agent_home }}"
+        state: directory
+        mode: '0755'
+
+    - name: Extract Machine Agent
+      ansible.builtin.unarchive:
+        src: "{{ machine_agent_file }}"
+        dest: "{{ appd_agent_home }}"
+        remote_src: yes
+
+    - name: Configure Machine Agent
+      ansible.builtin.copy:
+        dest: "{{ appd_agent_home }}/controller-info.xml"
+        content: |
+          <controller-info>
+            <controller-host>{{ appd_controller_host }}</controller-host>
+            <account-name>{{ appd_account_name }}</account-name>
+            <account-access-key>{{ appd_account_access_key }}</account-access-key>
+          </controller-info>
+
+    - name: Create systemd service for Machine Agent
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/machine-agent.service
+        content: |
+          [Unit]
+          Description=AppDynamics Machine Agent
+          After=network.target
+
+          [Service]
+          Type=simple
+          ExecStart={{ appd_agent_home }}/bin/machine-agent
+          Restart=always
+          User=root
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Machine Agent
+      ansible.builtin.systemd:
+        name: machine-agent
+        enabled: yes
+        state: started
