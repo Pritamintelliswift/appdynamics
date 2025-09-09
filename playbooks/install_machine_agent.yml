@@ -2,6 +2,7 @@
 - name: Install AppDynamics Machine Agent
   hosts: all
   become: yes
+  connection: local   # <── prevents SSH, runs directly on the node
 
   vars:
     appd_controller_host: "{{ appd_controller_url }}"
