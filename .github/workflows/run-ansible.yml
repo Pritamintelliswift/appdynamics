@@ -53,7 +53,7 @@ jobs:
       - name: Download AppDynamics Machine Agent
         run: |
           gsutil -m cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/machineagent.zip
-
+#updated
       - name: Copy Playbook to EC2
         run: |
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ubuntu@${{ env.EC2_HOST }}:/tmp/playbooks
