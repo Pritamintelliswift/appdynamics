@@ -43,7 +43,7 @@ jobs:
 
       - name: Authenticate GCP Service Account
         run: |
-          echo "${{ env.GCP_KEY_JSON_BASE64 }}" | base64 --decode > /tmp/gcp.json
+          echo "${{ env.GCP_KEY_JSON }}" | base64 --decode > /tmp/gcp.json
           export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp.json
           gcloud auth activate-service-account --key-file=/tmp/gcp.json
           gcloud auth list
