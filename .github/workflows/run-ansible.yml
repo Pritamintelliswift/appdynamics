@@ -35,7 +35,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y ansible curl apt-transport-https gnupg unzip
+          sudo apt-get install -y curl apt-transport-https gnupg unzip
 
       - name: Install Google Cloud SDK
         run: |
@@ -54,12 +54,16 @@ jobs:
         run: |
           gsutil -m cp gs://appdynamics-agent/machineagent-bundle-64bit-linux-25.7.0.4825.zip /tmp/machineagent.zip
 
-      - name: Copy Playbook and Machine Agent to EC2
+      - name: Install Ansible on EC2 and Copy Files
         run: |
-          # Copy playbooks and inventory
+          ssh -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no ubuntu@${{ env.EC2_HOST }} << 'EOF'
+            sudo apt-get update
+            sudo apt-get install -y ansible unzip
+            mkdir -p ~/playbooks ~/inventory
+          EOF
+
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ubuntu@${{ env.EC2_HOST }}:~/playbooks
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ubuntu@${{ env.EC2_HOST }}:~/inventory
-          # Copy machine agent zip to home directory
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ubuntu@${{ env.EC2_HOST }}:~/machineagent.zip
 
       - name: Run Ansible Playbook on EC2
