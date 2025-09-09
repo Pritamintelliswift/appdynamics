@@ -13,7 +13,7 @@ jobs:
       APPD_CONTROLLER_URL: ${{ secrets.APPD_CONTROLLER_URL }}
       APPD_USERNAME: ${{ secrets.APPD_USERNAME }}
       APPD_ACCESS_KEY: ${{ secrets.APPD_ACCESS_KEY }}
-      GCP_KEY_JSON_BASE64: ${{ secrets.GCP_KEY_JSON_BASE64 }}
+      GCP_KEY_JSON: ${{ secrets.GCP_KEY_JSON}}
       EC2_PEM: ${{ secrets.EC2_PEM }}
       EC2_USER: ${{ secrets.EC2_USER }}
       EC2_HOST: ${{ secrets.EC2_HOST }}
