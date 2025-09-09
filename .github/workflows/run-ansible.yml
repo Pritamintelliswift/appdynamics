@@ -75,10 +75,11 @@ jobs:
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./playbooks ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/playbooks
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no -r ./inventory ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/inventory
           scp -i ~/.ssh/appdynamics.pem -o StrictHostKeyChecking=no /tmp/machineagent.zip ${{ env.EC2_USER }}@${{ env.EC2_HOST }}:~/machineagent.zip
-
+          cd ~
+          ls -ll 
       - name: Run Ansible Playbook on EC2
         run: |
-          cd ~/
+          cd ~
           ls -ll 
           sleep 10
           export ANSIBLE_HOST_KEY_CHECKING=False
